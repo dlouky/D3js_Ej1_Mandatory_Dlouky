@@ -1,22 +1,20 @@
-# Pinning locations + scale
+# COVID-19 in SPAIN (Module 9 Mandatory Exercise)
 
-Our boss liked a lot the map we have developed, now he wants to focus on Spain affection by City, he wants to
-display a map pinning affected locations and scaling that pin according the number of cases affected, something like:
+I focus on Spain affection by community displaying a map pinning affected locations and scaling that pin according to the number of cases affected, something like:
 
 ![map affected coronavirus](./content/chart.png "affected coronavirus")
 
-codesandbox: https://codesandbox.io/s/hopeful-ellis-rlczx
 
-We have to face three challenges here:
+I have to face three challenges here:
 
 - Place pins on a map based on location.
 - Scale pin radius based on affected number.
-- Spain got canary island that is a territory placed far away, we need to cropt that islands and paste them in a visible
-  place in the map.
+- Create buttons to show different data periods.
+
 
 # Steps
 
-- We will take as starting example _00-render-map-hover_, let's copy the content from that folder and execute _npm install_.
+- I will take as starting example _02-pin-location-scale_, let's copy the content from that folder and execute _npm install_.
 
 ```bash
 npm install
@@ -26,31 +24,27 @@ npm install
 
 Let's copy it under the following route _./src/spain.json_
 
-- Now instead of importing _europe.json_ we will import _spain.json_.
+- Now import _spain.json_.
 
 _./src/index.ts_
 
 ```diff
 import * as d3 from "d3";
 import * as topojson from "topojson-client";
-- const europejson = require("./europe.json");
 + const spainjson = require("./spain.json");
 ```
 
-- Let's build the spain map instenad of europe:
+- Let's build the spain map:
 
 _./src/index.ts_
 
 ```diff
 const geojson = topojson.feature(
 +  spainjson,
--  europejson,
 +  spainjson.objects.ESP_adm1
--  europejson.objects.continent_Europe_subunits
 );
 ```
-
-> How do we know that we have to use _spainjson.objects.ESP_adm1_ just by examining
+> How do I know that we have to use _spainjson.objects.ESP_adm1_ just by examining
 > the _spain.json_ file and by debugging and inspecting what's inside _spainjson_ object
 
 - If we run the project, we will get some bitter-sweet feelings, we can see a map of spain,
@@ -65,10 +59,8 @@ _./src/index.ts_
 const aProjection = d3
   .geoMercator()
   // Let's make the map bigger to fit in our resolution
--  .scale(500)
 +  .scale(2300)
   // Let's center the map
--  .translate([300, 900]);
 +  .translate([600, 2000]);
 ```
 
@@ -118,7 +110,7 @@ const aProjection =
 
 - If we run the project, voila ! we got the map just the way we want it.
 
-- Now we want to display a circle in the middle of each community (comunidad autónoma),
+- Now we want to display a circle in the middle of each community,
   we have collected the latitude and longitude for each community, let's add them to our
   project.
 
@@ -218,6 +210,22 @@ import * as d3 from "d3";
 import * as topojson from "topojson-client";
 + import { latLongCommunities } from "./communities";
 ```
+- let' define a function to calculate the radius of each circle bases on infected cases:
+
+```diff
+const calculateRadiusBasedOnAffectedCases = (comunidad: string, data: ResultEntry[]) => {
+  const entry = data.find(item => item.name === comunidad);
+  const maxAffected = 10000
+
+  const affectedRadiusScale = d3
+  .scaleLinear()
+  .domain([0, maxAffected])
+  .range([0, 50]); // 50 pixel max radius, we could calculate it relative to width and height
+  
+  return entry ? affectedRadiusScale(entry.value) : 0;
+};
+
+```
 
 - And let's append at the bottom of the _index_ file a
   code to render a circle on top of each community:
@@ -230,9 +238,11 @@ svg
   .data(latLongCommunities)
   .enter()
   .append("circle")
-  .attr("r", 15)
+  .attr("class", "affected-marker")
+  .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name, initial))
   .attr("cx", d => aProjection([d.long, d.lat])[0])
-  .attr("cy", d => aProjection([d.long, d.lat])[1]);
+  .attr("cy", d => aProjection([d.long, d.lat])[1])
+  ;
 ```
 
 - Nice ! we got an spot on top of each community, now is time to
@@ -243,70 +253,150 @@ svg
 _./stats.ts_
 
 ```typescript
-export const stats = [
+export interface ResultEntry {
+  name: string;
+  value: number;
+}
+
+export const initial : ResultEntry[] = [
   {
     name: "Madrid",
-    value: 174
+    value: 587
   },
   {
     name: "La Rioja",
-    value: 39
+    value: 102
   },
   {
     name: "Andalucía",
-    value: 34
+    value: 54
   },
   {
     name: "Cataluña",
-    value: 24
+    value: 101
   },
   {
     name: "Valencia",
-    value: 30
+    value: 50
   },
   {
     name: "Murcia",
-    value: 0
-  },
-  {
-    name: "Extremadura",
-    value: 6
-  },
-  {
-    name: "Castilla La Mancha",
-    value: 16
-  },
-  {
-    name: "País Vasco",
-    value: 45
-  },
-  {
-    name: "Cantabria",
-    value: 10
-  },
-  {
-    name: "Asturias",
     value: 5
   },
   {
+    name: "Extremadura",
+    value: 7
+  },
+  {
+    name: "Castilla La Mancha",
+    value: 26
+  },
+  {
+    name: "País Vasco",
+    value: 148
+  },
+  {
+    name: "Cantabria",
+    value: 12
+  },
+  {
+    name: "Asturias",
+    value: 10
+  },
+  {
     name: "Galicia",
-    value: 3
-  },
-  {
-    name: "Aragón",
-    value: 11
-  },
-  {
-    name: "Castilla y León",
-    value: 19
-  },
-  {
-    name: "Islas Canarias",
     value: 18
   },
   {
+    name: "Aragón",
+    value: 32
+  },
+  {
+    name: "Castilla y León",
+    value: 40
+  },
+  {
+    name: "Islas Canarias",
+    value: 24
+  },
+  {
     name: "Islas Baleares",
-    value: 6
+    value: 11
+  },
+  {
+    name: "Navarra",
+    value: 13
+  }
+];
+
+export const final : ResultEntry[] = [
+  {
+    name: "Madrid",
+    value: 9702
+  },
+  {
+    name: "La Rioja",
+    value: 654
+  },
+  {
+    name: "Andalucía",
+    value: 1725
+  },
+  {
+    name: "Cataluña",
+    value: 4704
+  },
+  {
+    name: "Valencia",
+    value: 1604
+  },
+  {
+    name: "Murcia",
+    value: 296
+  },
+  {
+    name: "Extremadura",
+    value: 384
+  },
+  {
+    name: "Castilla La Mancha",
+    value: 1819
+  },
+  {
+    name: "País Vasco",
+    value: 2097
+  },
+  {
+    name: "Cantabria",
+    value: 282
+  },
+  {
+    name: "Asturias",
+    value: 545
+  },
+  {
+    name: "Galicia",
+    value: 915
+  },
+  {
+    name: "Aragón",
+    value: 532
+  },
+  {
+    name: "Castilla y León",
+    value: 1744
+  },
+  {
+    name: "Islas Canarias",
+    value: 414
+  },
+  {
+    name: "Islas Baleares",
+    value: 331
+  },
+  {
+    name: "Navarra",
+    value: 794
   }
 ];
 ```
@@ -324,83 +414,12 @@ import { latLongCommunities } from "./communities";
 + import { stats } from "./stats";
 ```
 
-- Let's calculate the maximum number of affected of all communities:
-
-_./src/index.ts_
-
-```typescript
-const maxAffected = stats.reduce(
-  (max, item) => (item.value > max ? item.value : max),
-  0
-);
-```
-
-- Let's create an scale to map affected to radius size.
-
-_./src/index.ts_
-
-```typescript
-const affectedRadiusScale = d3
-  .scaleLinear()
-  .domain([0, maxAffected])
-  .range([0, 50]); // 50 pixel max radius, we could calculate it relative to width and height
-```
-
-- Let's create a helper function to glue the community name with the affected cases.
-
-_./src/index.ts_
-
-```typescript
-const calculateRadiusBasedOnAffectedCases = (comunidad: string) => {
-  const entry = stats.find(item => item.name === comunidad);
-
-  return entry ? affectedRadiusScale(entry.value) : 0;
-};
-```
-
-- Let's tie it up with the circle rendering code that we created above:
-
-_./src/index.ts_
-
-```diff
-svg
-  .selectAll("circle")
-  .data(latLongCommunities)
-  .enter()
-  .append("circle")
--  .attr("r", 15)
-+  .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name))
-  .attr("cx", d => aProjection([d.long, d.lat])[0])
-  .attr("cy", d => aProjection([d.long, d.lat])[1]);
-```
 
 - If we run the example we can check that know circles are shonw in the right size:
 
 - Black circles are ugly let's add some styles, we will just use a red background and
   add some transparency to let the user see the spot and the map under that spot.
 
-_./src/map.css_
-
-```diff
-.country {
-  stroke-width: 1;
-  stroke: #2f4858;
-  fill: #008c86;
-}
-
-.selected-country {
-  stroke-width: 1;
-  stroke: #bc5b40;
-  fill: #f88f70;
-}
-
-+ .affected-marker {
-+  stroke-width: 1;
-+  stroke: #bc5b40;
-+  fill: #f88f70;
-+  fill-opacity: 0.7;
-+ }
-```
 
 - Let's apply this style to the black circles tha we are rendering:
 
@@ -418,8 +437,7 @@ svg
   .attr("cy", d => aProjection([d.long, d.lat])[1]);
 ```
 
-- Just to wrap up let's remove features that we are not using for this chart
-  (highlight a given community on mouse hover).
+- now I enter the svg.
 
 _./src/index.ts_
 
@@ -432,15 +450,9 @@ svg
   .attr("class", "country")
   // data loaded from json file
   .attr("d", geoPath as any)
--  .on("mouseover", function(d, i) {
--    d3.select(this).attr("class", "selected-country");
--  })
--  .on("mouseout", function(d, i) {
--    d3.select(this).attr("class", "country");
--  });
 ```
 
-./src/map.css
+_./src/map.css
 
 ```diff
 .country {
@@ -449,11 +461,6 @@ svg
   fill: #008c86;
 }
 
-- .selected-country {
--  stroke-width: 1;
--  stroke: #bc5b40;
--  fill: #f88f70;
-- }
 
 .affected-marker {
   stroke-width: 1;
@@ -463,12 +470,47 @@ svg
 }
 ```
 
-# About Basefactor + Lemoncode
+- Create buttons to see past or actual info.
 
-We are an innovating team of Javascript experts, passionate about turning your ideas into robust products.
+_./src/index.html
 
-[Basefactor, consultancy by Lemoncode](http://www.basefactor.com) provides consultancy and coaching services.
+```diff
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="./map.css" />
+    <link rel="stylesheet" type="text/css" href="./base.css" />
+  </head>
+  <body>
+    <div>
+      <button id="initial">Initial</button>
+      <button id="final">Final</button>
+    </div>
+    <script src="./index.ts"></script>
+  </body>
+</html>
+```
 
-[Lemoncode](http://lemoncode.net/services/en/#en-home) provides training services.
+- Asociate actions to those buttons.
 
-For the LATAM/Spanish audience we are running an Online Front End Master degree, more info: http://lemoncode.net/master-frontend
+_./src/index.ts
+
+```diff
+document
+.getElementById("initial")
+.addEventListener("click", function handleResultsInitial() {
+  updateCircles(initial);
+});
+
+document
+.getElementById("final")
+.addEventListener("click", function handleResultsFinal() {
+  updateCircles(final);
+});
+```
+
+
+# Knowledge
+- Spain topojson info:
+https://github.com/deldersveld/topojson/blob/master/countries/spain/spain-comunidad-with-canary-islands.json
+- d3js-typescript-examples
+https://github.com/Lemoncode/d3js-typescript-examples/tree/master/02-maps/02-pin-location-scale
