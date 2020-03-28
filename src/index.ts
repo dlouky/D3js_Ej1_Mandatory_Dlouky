@@ -65,10 +65,12 @@ svg
   .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name, final))*/
   ;
 
-
 const updateCircles = (data: ResultEntry[]) => {
   svg.selectAll("circle")
   .data(latLongCommunities)
+  .merge(svg as any)
+  .transition()
+  .duration(500)
   .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name, data))
   .attr("cx", d => aProjection([d.long, d.lat])[0])
   .attr("cy", d => aProjection([d.long, d.lat])[1]);

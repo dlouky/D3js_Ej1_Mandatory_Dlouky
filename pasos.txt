@@ -1,0 +1,12 @@
+npm install
+npm start
+
+
+D3js_Ej1_Mandatory_Dlouky
+
+
+https://bost.ocks.org/mike/join/
+2:03
+Aquí se explica como funciona el patrón enter/exit/update
+
+https://www.elmundo.es/ciencia-y-salud/salud/2020/03/20/5e74b922fc6c839d588b45db.html
