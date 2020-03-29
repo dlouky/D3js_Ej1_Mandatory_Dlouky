@@ -433,7 +433,7 @@ _./src/index.html_
 ```
 
 
-- Now now set the button behavior.
+- Set the button behavior.
 
 _./src/index.ts_
 
