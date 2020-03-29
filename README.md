@@ -14,109 +14,34 @@ I have to face three challenges here:
 
 # Steps
 
-- I will take as starting example _02-pin-location-scale_, let's copy the content from that folder and execute _npm install_.
+- I will take as starting example _02-pin-location-scale_ from https://github.com/Lemoncode/d3js-typescript-examples/tree/master/02-maps/02-pin-location-scale. Let's copy the content from that folder and execute _npm install_.
 
 ```bash
 npm install
 ```
 
-- This time we will Spain topojson info: https://github.com/deldersveld/topojson/blob/master/countries/spain/spain-comunidad-with-canary-islands.json
+- I use Spain topojson info: https://github.com/deldersveld/topojson/blob/master/countries/spain/spain-comunidad-with-canary-islands.json
 
 Let's copy it under the following route _./src/spain.json_
 
-- Now import _spain.json_.
-
-_./src/index.ts_
-
-```diff
-import * as d3 from "d3";
-import * as topojson from "topojson-client";
-+ const spainjson = require("./spain.json");
-```
-
-- Let's build the spain map:
-
-_./src/index.ts_
-
-```diff
-const geojson = topojson.feature(
-+  spainjson,
-+  spainjson.objects.ESP_adm1
-);
-```
-> How do I know that we have to use _spainjson.objects.ESP_adm1_ just by examining
-> the _spain.json_ file and by debugging and inspecting what's inside _spainjson_ object
-
-- If we run the project, we will get some bitter-sweet feelings, we can see a map of spain,
-  but it's too smal, and on the other hand, canary islands are shown far away (that's normal,
-  but usually in maps these islands are relocated).
-
-- Let's start by adding the right size to be displayed in our screen.
-
-_./src/index.ts_
-
-```diff
-const aProjection = d3
-  .geoMercator()
-  // Let's make the map bigger to fit in our resolution
-+  .scale(2300)
-  // Let's center the map
-+  .translate([600, 2000]);
-```
-
-- If we run the project we can check that the map is now renders in a proper size and position, let's
-  go for the next challenge, we want to reposition Canary Islands, in order to do that we can build a
-  map projection that positions that piece of land in another place, for instance for the USA you can
-  find Albers USA projection: https://bl.ocks.org/mbostock/2869946, there's a great project created by
+To create the map, notice that there's a great project created by
   [Roger Veciana](https://github.com/rveciana) that implements a lot of projections for several
   maps:
 
   - [Project site](https://geoexamples.com/d3-composite-projections/)
   - [Github project](https://github.com/rveciana/d3-composite-projections)
 
-Let's install the library that contains this projections:
+Let's install the library that contains the map projections:
 
 ```bash
 npm install d3-composite-projections --save
 ```
 
-- Let's import it in our _index.ts_ (we will use require since we don't have typings).
-
-```diff
-import * as d3 from "d3";
-import * as topojson from "topojson-client";
-const spainjson = require("./spain.json");
-+ const d3Composite = require("d3-composite-projections");
-```
-
-- Let's change the projection we are using (we will need to tweak as well the
-  _scale_ and _translate_ values):
-
-_./index.ts_
-
-```diff
-const aProjection =
--   d3
--  .geoMercator()
-+  d3Composite
-+  .geoConicConformalSpain()
-  // Let's make the map bigger to fit in our resolution
--  .scale(2300)
-+  .scale(3300)
-  // Let's center the map
--  .translate([600, 2000]);
-+  .translate([500, 400]);
-```
-
-- If we run the project, voila ! we got the map just the way we want it.
-
-- Now we want to display a circle in the middle of each community,
-  we have collected the latitude and longitude for each community, let's add them to our
-  project.
+- Create communities.ts which has all the communities coordinates.
 
 _./src/communities.ts_
 
-```typescript
+```diff
 export const latLongCommunities = [
   {
     name: "Madrid",
@@ -196,63 +121,23 @@ export const latLongCommunities = [
   {
     name: "La Rioja",
     long: -2.44373,
-    lat: 36.97706
+    lat: 42.4650
+  },
+  {
+    name: "Navarra",
+    long: -1.676069,
+    lat: 42.695391
   }
 ];
+
 ```
 
-- Let's import it:
 
-_./src/index.ts_
+- Now create stats.ts where all the cases by community appear in a period of onset and another more contemporary.
+
+_./src/stats.ts_
 
 ```diff
-import * as d3 from "d3";
-import * as topojson from "topojson-client";
-+ import { latLongCommunities } from "./communities";
-```
-- let' define a function to calculate the radius of each circle bases on infected cases:
-
-```diff
-const calculateRadiusBasedOnAffectedCases = (comunidad: string, data: ResultEntry[]) => {
-  const entry = data.find(item => item.name === comunidad);
-  const maxAffected = 10000
-
-  const affectedRadiusScale = d3
-  .scaleLinear()
-  .domain([0, maxAffected])
-  .range([0, 50]); // 50 pixel max radius, we could calculate it relative to width and height
-  
-  return entry ? affectedRadiusScale(entry.value) : 0;
-};
-
-```
-
-- And let's append at the bottom of the _index_ file a
-  code to render a circle on top of each community:
-
-_./src/index.ts_
-
-```typescript
-svg
-  .selectAll("circle")
-  .data(latLongCommunities)
-  .enter()
-  .append("circle")
-  .attr("class", "affected-marker")
-  .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name, initial))
-  .attr("cx", d => aProjection([d.long, d.lat])[0])
-  .attr("cy", d => aProjection([d.long, d.lat])[1])
-  ;
-```
-
-- Nice ! we got an spot on top of each community, now is time to
-  make this spot size relative to the number of affected cases per community.
-
-- We will add the stats that we need to display (affected persons per community):
-
-_./stats.ts_
-
-```typescript
 export interface ResultEntry {
   name: string;
   value: number;
@@ -401,58 +286,9 @@ export const final : ResultEntry[] = [
 ];
 ```
 
-- Let's import it into our index.ts
+- Create map.css to define the map styles.
 
-_./src/index.ts_
-
-```diff
-import * as d3 from "d3";
-import * as topojson from "topojson-client";
-const spainjson = require("./spain.json");
-const d3Composite = require("d3-composite-projections");
-import { latLongCommunities } from "./communities";
-+ import { stats } from "./stats";
-```
-
-
-- If we run the example we can check that know circles are shonw in the right size:
-
-- Black circles are ugly let's add some styles, we will just use a red background and
-  add some transparency to let the user see the spot and the map under that spot.
-
-
-- Let's apply this style to the black circles tha we are rendering:
-
-_./src/index.ts_
-
-```diff
-svg
-  .selectAll("circle")
-  .data(latLongCommunities)
-  .enter()
-  .append("circle")
-+  .attr("class", "affected-marker")
-  .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name))
-  .attr("cx", d => aProjection([d.long, d.lat])[0])
-  .attr("cy", d => aProjection([d.long, d.lat])[1]);
-```
-
-- now I enter the svg.
-
-_./src/index.ts_
-
-```diff
-svg
-  .selectAll("path")
-  .data(geojson["features"])
-  .enter()
-  .append("path")
-  .attr("class", "country")
-  // data loaded from json file
-  .attr("d", geoPath as any)
-```
-
-_./src/map.css
+_./src/stats.ts_
 
 ```diff
 .country {
@@ -460,7 +296,6 @@ _./src/map.css
   stroke: #2f4858;
   fill: #008c86;
 }
-
 
 .affected-marker {
   stroke-width: 1;
@@ -470,9 +305,116 @@ _./src/map.css
 }
 ```
 
-- Create buttons to see past or actual info.
+- Import all the files and libraries created above
 
-_./src/index.html
+_./src/index.ts_
+
+```diff
+import * as d3 from "d3";
+import * as topojson from "topojson-client";
+const spainjson = require("./spain.json");
+const d3Composite = require("d3-composite-projections");
+import { latLongCommunities } from "./communities";
+import { initial, final, ResultEntry } from "./stats";
+```
+
+- Now define a function to calculate the readius of each circle according to the number of infected cases.
+
+_./src/index.ts_
+```diff
+const calculateRadiusBasedOnAffectedCases = (comunidad: string, data: ResultEntry[]) => {
+  const entry = data.find(item => item.name === comunidad);
+  const maxAffected = 10000/*data.reduce(
+    (max, item) => (item.value > max ? item.value : max),
+    0
+  );*/
+
+  const affectedRadiusScale = d3
+  .scaleLinear()
+  .domain([0, maxAffected])
+  .range([0, 50]); // 50 pixel max radius, we could calculate it relative to width and height
+  
+  return entry ? affectedRadiusScale(entry.value) : 0;
+};
+```
+
+- Let's build the spain map:
+
+_./src/index.ts_
+
+```diff
+const svg = d3
+  .select("body")
+  .append("svg")
+  .attr("width", 1024)
+  .attr("height", 800)
+  .attr("style", "background-color: #FBFAF0");
+
+const aProjection = d3Composite
+  .geoConicConformalSpain()
+  // Let's make the map bigger to fit in our resolution
+  .scale(3300)
+  // Let's center the map
+  .translate([500, 400]);
+
+const geoPath = d3.geoPath().projection(aProjection);
+const geojson = topojson.feature(spainjson, spainjson.objects.ESP_adm1);
+
+svg
+  .selectAll("path")
+  .data(geojson["features"])
+  .enter()
+  .append("path")
+  .attr("class", "country")
+  // data loaded from json file
+  .attr("d", geoPath as any);
+```
+
+```diff
+const geojson = topojson.feature(
++  spainjson,
++  spainjson.objects.ESP_adm1
+);
+```
+
+- Create the circles:
+
+_./src/index.ts_
+
+```diff
+svg
+  .selectAll("circle")
+  .data(latLongCommunities)
+  
+  .enter()
+  .append("circle")
+  .attr("class", "affected-marker")
+  .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name, initial))
+  .attr("cx", d => aProjection([d.long, d.lat])[0])
+  .attr("cy", d => aProjection([d.long, d.lat])[1])
+  ;
+```
+
+- Define a function to update the radius of the circles:
+
+_./src/index.ts_
+
+```diff
+const updateCircles = (data: ResultEntry[]) => {
+  svg.selectAll("circle")
+  .data(latLongCommunities)
+  .merge(svg as any)
+  .transition()
+  .duration(500)
+  .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name, data))
+  .attr("cx", d => aProjection([d.long, d.lat])[0])
+  .attr("cy", d => aProjection([d.long, d.lat])[1]);
+};
+```
+
+- Create the buttons.
+
+_./src/index.html_
 
 ```diff
 <html>
@@ -482,17 +424,18 @@ _./src/index.html
   </head>
   <body>
     <div>
-      <button id="initial">Initial</button>
-      <button id="final">Final</button>
++      <button id="initial">Initial</button>
++      <button id="final">Final</button>
     </div>
     <script src="./index.ts"></script>
   </body>
 </html>
 ```
 
-- Asociate actions to those buttons.
 
-_./src/index.ts
+- Now now set the button behavior.
+
+_./src/index.ts_
 
 ```diff
 document
@@ -507,6 +450,8 @@ document
   updateCircles(final);
 });
 ```
+
+- If we run the project, voila ! we got the map just the way we want it.
 
 
 # Knowledge
