@@ -453,6 +453,10 @@ document
 
 - If we run the project, voila ! we got the map just the way we want it.
 
+```bash
+npm start
+```
+
 
 # Knowledge
 - Spain topojson info:
